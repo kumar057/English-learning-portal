@@ -131,12 +131,13 @@
   }
   .login-card .brand{justify-content:center;margin-bottom:6px;}
   .login-sub{text-align:center;color:var(--cream-dim);font-size:0.88rem;margin:0 0 24px;}
-  .tabs{display:flex;background:var(--navy-deep);border-radius:999px;padding:4px;margin-bottom:22px;border:1px solid var(--line);}
-  .tabs button{
-    flex:1;border:none;background:transparent;color:var(--cream-dim);padding:9px 0;border-radius:999px;
-    font-weight:600;font-size:0.85rem;cursor:pointer;
+  .login-stage{
+    width:132px;height:132px;margin:0 auto 14px;border-radius:50%;
+    background:radial-gradient(circle at 50% 32%, #303969 0%, #171b39 78%);
+    border:1px solid var(--line);overflow:hidden;position:relative;
+    box-shadow:0 0 32px rgba(255,184,77,0.12);
   }
-  .tabs button.active{background:var(--amber);color:#22190a;}
+  .login-stage canvas{display:block;width:100%;height:100%;}
   .field{margin-bottom:14px;}
   .field label{display:block;font-size:0.78rem;color:var(--cream-dim);margin-bottom:6px;}
   .field input{
@@ -147,8 +148,6 @@
   #loginForm .btn{width:100%;padding:12px 0;font-size:0.94rem;margin-top:6px;}
   .login-alt{text-align:center;font-size:0.82rem;color:var(--cream-dim);margin-top:16px;}
   .login-alt a{color:var(--amber);cursor:pointer;text-decoration:none;font-weight:600;}
-  .guest-link{display:block;text-align:center;margin-top:12px;font-size:0.8rem;color:var(--cream-dim);cursor:pointer;}
-  .guest-link:hover{color:var(--cream);}
   .form-error{color:var(--coral);font-size:0.8rem;margin:-4px 0 12px;min-height:1em;}
 
   /* ================= App ================= */
@@ -257,8 +256,8 @@
       <a onclick="scrollToId('howSection')">How it works</a>
     </div>
     <div class="nav-actions">
-      <button class="btn btn-ghost" onclick="openLogin('login')">Log in</button>
-      <button class="btn btn-primary" onclick="openLogin('signup')">Get started</button>
+      <button class="btn btn-ghost" onclick="showView('login')">Log in</button>
+      <button class="btn btn-primary" onclick="showView('login')">Get started</button>
     </div>
   </div>
 
@@ -267,8 +266,8 @@
       <h1>Practice English by <em>actually speaking it.</em></h1>
       <p>Meet Max — a conversation partner who listens, replies, and gently fixes your mistakes as you go. No scripts, no multiple choice. Just a real back-and-forth, at your pace.</p>
       <div class="cta-row">
-        <button class="btn btn-primary" onclick="openLogin('signup')">Start talking — it's free</button>
-        <button class="btn btn-ghost" onclick="openLogin('login')">I already have an account</button>
+        <button class="btn btn-primary" onclick="showView('login')">Start talking — it's free</button>
+        <button class="btn btn-ghost" onclick="showView('login')">I already have an account</button>
       </div>
       <div class="trust">Works in your browser. No download needed.</div>
     </div>
@@ -280,11 +279,11 @@
   <div class="features" id="featuresSection">
     <h2 class="serif">Pick a scenario, any scenario</h2>
     <div class="feature-grid">
-      <div class="feature-card" onclick="openLogin('signup')"><div class="tag">FREE CHAT</div><h3>Everyday conversation</h3><p>Talk about your day, your hobbies, whatever's on your mind — Max keeps it flowing.</p></div>
-      <div class="feature-card" onclick="openLogin('signup')"><div class="tag">CAREER</div><h3>Job interview roleplay</h3><p>Practice answering interview questions naturally, under a little friendly pressure.</p></div>
-      <div class="feature-card" onclick="openLogin('signup')"><div class="tag">DAILY LIFE</div><h3>Ordering food</h3><p>Rehearse restaurant English before you need it for real.</p></div>
-      <div class="feature-card" onclick="openLogin('signup')"><div class="tag">TRAVEL</div><h3>Directions & travel</h3><p>Ask for directions, book a room, get around a new city with confidence.</p></div>
-      <div class="feature-card" onclick="openLogin('signup')"><div class="tag">WORKPLACE</div><h3>Small talk with coworkers</h3><p>The casual chat that's often harder than the formal meeting.</p></div>
+      <div class="feature-card" onclick="showView('login')"><div class="tag">FREE CHAT</div><h3>Everyday conversation</h3><p>Talk about your day, your hobbies, whatever's on your mind — Max keeps it flowing.</p></div>
+      <div class="feature-card" onclick="showView('login')"><div class="tag">CAREER</div><h3>Job interview roleplay</h3><p>Practice answering interview questions naturally, under a little friendly pressure.</p></div>
+      <div class="feature-card" onclick="showView('login')"><div class="tag">DAILY LIFE</div><h3>Ordering food</h3><p>Rehearse restaurant English before you need it for real.</p></div>
+      <div class="feature-card" onclick="showView('login')"><div class="tag">TRAVEL</div><h3>Directions & travel</h3><p>Ask for directions, book a room, get around a new city with confidence.</p></div>
+      <div class="feature-card" onclick="showView('login')"><div class="tag">WORKPLACE</div><h3>Small talk with coworkers</h3><p>The casual chat that's often harder than the formal meeting.</p></div>
     </div>
   </div>
 
@@ -307,16 +306,13 @@
 <div class="view" id="view-login">
   <div class="login-wrap">
     <div class="login-card">
-      <div class="brand"><span class="dot"></span>Lumen</div>
+      <div class="login-stage" id="loginStage"></div>
+      <div class="brand" style="justify-content:center;"><span class="dot"></span>Lumen</div>
       <p class="login-sub">Sign in to start practicing with Max.</p>
-      <div class="tabs">
-        <button id="tabLogin" class="active" onclick="setAuthTab('login')">Log in</button>
-        <button id="tabSignup" onclick="setAuthTab('signup')">Sign up</button>
-      </div>
       <form id="loginForm" onsubmit="return handleAuthSubmit(event)">
-        <div class="field" id="nameField" style="display:none;">
+        <div class="field">
           <label for="nameInput">Name</label>
-          <input type="text" id="nameInput" placeholder="What should Max call you?">
+          <input type="text" id="nameInput" placeholder="Your name" required>
         </div>
         <div class="field">
           <label for="emailInput">Email</label>
@@ -327,10 +323,8 @@
           <input type="password" id="passInput" placeholder="••••••••" required>
         </div>
         <div class="form-error" id="authError"></div>
-        <button type="submit" class="btn btn-primary" id="authSubmitBtn">Log in</button>
+        <button type="submit" class="btn btn-primary" id="authSubmitBtn">Start learning</button>
       </form>
-      <div class="login-alt" id="authAlt">New here? <a onclick="setAuthTab('signup')">Create an account</a></div>
-      <div class="guest-link" onclick="continueAsGuest()">Continue as guest instead →</div>
     </div>
   </div>
 </div>
@@ -389,7 +383,6 @@
 <script>
 (function(){
   // ================= View / auth state =================
-  let authTab = 'login';
   let userName = '';
 
   window.showView = function(name){
@@ -399,47 +392,29 @@
     if(name === 'app'){
       ensureAppBot();
     }
+    if(name === 'login'){
+      ensureLoginBot();
+    }
   };
 
   window.scrollToId = function(id){
     document.getElementById(id).scrollIntoView({behavior:'smooth'});
   };
 
-  window.openLogin = function(tab){
-    setAuthTab(tab);
-    showView('login');
-  };
-
-  window.setAuthTab = function(tab){
-    authTab = tab;
-    document.getElementById('tabLogin').classList.toggle('active', tab==='login');
-    document.getElementById('tabSignup').classList.toggle('active', tab==='signup');
-    document.getElementById('nameField').style.display = tab==='signup' ? 'block' : 'none';
-    document.getElementById('authSubmitBtn').textContent = tab==='signup' ? 'Create account' : 'Log in';
-    document.getElementById('authAlt').innerHTML = tab==='signup'
-      ? 'Already have an account? <a onclick="setAuthTab(\'login\')">Log in</a>'
-      : 'New here? <a onclick="setAuthTab(\'signup\')">Create an account</a>';
-    document.getElementById('authError').textContent = '';
-  };
-
   window.handleAuthSubmit = function(e){
     e.preventDefault();
+    const name = document.getElementById('nameInput').value.trim();
     const email = document.getElementById('emailInput').value.trim();
     const pass = document.getElementById('passInput').value;
-    const nameField = document.getElementById('nameInput').value.trim();
     const errEl = document.getElementById('authError');
 
-    if(!email || !pass){ errEl.textContent = 'Please fill in both fields.'; return false; }
+    if(!name || !email || !pass){ errEl.textContent = 'Please fill in all three fields.'; return false; }
     if(pass.length < 4){ errEl.textContent = 'Password should be at least 4 characters.'; return false; }
 
-    userName = authTab === 'signup' && nameField ? nameField : email.split('@')[0];
+    errEl.textContent = '';
+    userName = name;
     enterApp();
     return false;
-  };
-
-  window.continueAsGuest = function(){
-    userName = 'Guest';
-    enterApp();
   };
 
   window.logout = function(){
@@ -818,6 +793,14 @@ or
     appBot = createBotScene(document.getElementById('appStage'), {decorative:false});
   }
 
+  // Login bot: small decorative bot floating above the sign-in form
+  let loginBot = null;
+  const loginBotState = {talkLevel:0, isSpeaking:false, isListening:false};
+  function ensureLoginBot(){
+    if(loginBot) return;
+    loginBot = createBotScene(document.getElementById('loginStage'), {decorative:true});
+  }
+
   const clock = new THREE.Clock();
   function loop(){
     requestAnimationFrame(loop);
@@ -825,6 +808,9 @@ or
     const dt = clock.getDelta();
     if(document.getElementById('view-landing').classList.contains('active')){
       landingBot.update(t, dt, landingBotState);
+    }
+    if(loginBot && document.getElementById('view-login').classList.contains('active')){
+      loginBot.update(t, dt, loginBotState);
     }
     if(appBot && document.getElementById('view-app').classList.contains('active')){
       appBot.update(t, dt, {talkLevel, isSpeaking, isListening});
