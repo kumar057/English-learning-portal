@@ -232,6 +232,11 @@
   .correction-card .fix{color:var(--mint);font-weight:600;}
   .correction-card .tip{color:var(--cream-dim);margin-top:5px;}
   .typing{align-self:flex-start;color:var(--cream-dim);font-size:0.85rem;padding:0 4px;}
+  .correct-tag{
+    align-self:flex-start;font-size:0.78rem;font-weight:700;color:var(--mint);
+    background:rgba(127,217,168,0.1);border:1px solid rgba(127,217,168,0.3);
+    padding:5px 12px;border-radius:999px;
+  }
 
   .chat-input-row{display:flex;gap:10px;padding:16px;border-top:1px solid var(--line);}
   #textInput{
@@ -256,8 +261,8 @@
       <a onclick="scrollToId('howSection')">How it works</a>
     </div>
     <div class="nav-actions">
-      <button class="btn btn-ghost" onclick="showView('login')">Log in</button>
-      <button class="btn btn-primary" onclick="showView('login')">Get started</button>
+      <button class="btn btn-ghost" onclick="openAuth('login')">Log in</button>
+      <button class="btn btn-primary" onclick="openAuth('register')">Get started</button>
     </div>
   </div>
 
@@ -266,8 +271,8 @@
       <h1>Practice English by <em>actually speaking it.</em></h1>
       <p>Meet Max — a conversation partner who listens, replies, and gently fixes your mistakes as you go. No scripts, no multiple choice. Just a real back-and-forth, at your pace.</p>
       <div class="cta-row">
-        <button class="btn btn-primary" onclick="showView('login')">Start talking — it's free</button>
-        <button class="btn btn-ghost" onclick="showView('login')">I already have an account</button>
+        <button class="btn btn-primary" onclick="openAuth('register')">Start talking — it's free</button>
+        <button class="btn btn-ghost" onclick="openAuth('login')">I already have an account</button>
       </div>
       <div class="trust">Works in your browser. No download needed.</div>
     </div>
@@ -279,11 +284,11 @@
   <div class="features" id="featuresSection">
     <h2 class="serif">Pick a scenario, any scenario</h2>
     <div class="feature-grid">
-      <div class="feature-card" onclick="showView('login')"><div class="tag">FREE CHAT</div><h3>Everyday conversation</h3><p>Talk about your day, your hobbies, whatever's on your mind — Max keeps it flowing.</p></div>
-      <div class="feature-card" onclick="showView('login')"><div class="tag">CAREER</div><h3>Job interview roleplay</h3><p>Practice answering interview questions naturally, under a little friendly pressure.</p></div>
-      <div class="feature-card" onclick="showView('login')"><div class="tag">DAILY LIFE</div><h3>Ordering food</h3><p>Rehearse restaurant English before you need it for real.</p></div>
-      <div class="feature-card" onclick="showView('login')"><div class="tag">TRAVEL</div><h3>Directions & travel</h3><p>Ask for directions, book a room, get around a new city with confidence.</p></div>
-      <div class="feature-card" onclick="showView('login')"><div class="tag">WORKPLACE</div><h3>Small talk with coworkers</h3><p>The casual chat that's often harder than the formal meeting.</p></div>
+      <div class="feature-card" onclick="openAuth('register')"><div class="tag">FREE CHAT</div><h3>Everyday conversation</h3><p>Talk about your day, your hobbies, whatever's on your mind — Max keeps it flowing.</p></div>
+      <div class="feature-card" onclick="openAuth('register')"><div class="tag">CAREER</div><h3>Job interview roleplay</h3><p>Practice answering interview questions naturally, under a little friendly pressure.</p></div>
+      <div class="feature-card" onclick="openAuth('register')"><div class="tag">DAILY LIFE</div><h3>Ordering food</h3><p>Rehearse restaurant English before you need it for real.</p></div>
+      <div class="feature-card" onclick="openAuth('register')"><div class="tag">TRAVEL</div><h3>Directions & travel</h3><p>Ask for directions, book a room, get around a new city with confidence.</p></div>
+      <div class="feature-card" onclick="openAuth('register')"><div class="tag">WORKPLACE</div><h3>Small talk with coworkers</h3><p>The casual chat that's often harder than the formal meeting.</p></div>
     </div>
   </div>
 
@@ -302,17 +307,17 @@
   </footer>
 </div>
 
-<!-- ================= LOGIN VIEW ================= -->
+<!-- ================= LOGIN / REGISTER VIEW ================= -->
 <div class="view" id="view-login">
   <div class="login-wrap">
     <div class="login-card">
       <div class="login-stage" id="loginStage"></div>
       <div class="brand" style="justify-content:center;"><span class="dot"></span>Lumen</div>
-      <p class="login-sub">Sign in to start practicing with Max.</p>
+      <p class="login-sub" id="authSubtitle">Create your student account to start practicing with Max.</p>
       <form id="loginForm" onsubmit="return handleAuthSubmit(event)">
-        <div class="field">
+        <div class="field" id="nameField">
           <label for="nameInput">Name</label>
-          <input type="text" id="nameInput" placeholder="Your name" required>
+          <input type="text" id="nameInput" placeholder="Your name">
         </div>
         <div class="field">
           <label for="emailInput">Email</label>
@@ -323,8 +328,9 @@
           <input type="password" id="passInput" placeholder="••••••••" required>
         </div>
         <div class="form-error" id="authError"></div>
-        <button type="submit" class="btn btn-primary" id="authSubmitBtn">Start learning</button>
+        <button type="submit" class="btn btn-primary" id="authSubmitBtn">Register</button>
       </form>
+      <div class="login-alt" id="authAlt">Already a student? <a onclick="setAuthMode('login')">Log in</a></div>
     </div>
   </div>
 </div>
@@ -384,6 +390,8 @@
 (function(){
   // ================= View / auth state =================
   let userName = '';
+  let authMode = 'register'; // 'register' | 'login'
+  const registeredStudents = {}; // { email: {name, password} } — in-memory for this browser session
 
   window.showView = function(name){
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
@@ -401,18 +409,57 @@
     document.getElementById(id).scrollIntoView({behavior:'smooth'});
   };
 
+  window.openAuth = function(mode){
+    showView('login');
+    setAuthMode(mode);
+  };
+
+  window.setAuthMode = function(mode){
+    authMode = mode;
+    document.getElementById('authError').textContent = '';
+    document.getElementById('nameField').style.display = mode === 'register' ? 'block' : 'none';
+    document.getElementById('nameInput').required = (mode === 'register');
+    document.getElementById('authSubmitBtn').textContent = mode === 'register' ? 'Register' : 'Log in';
+    document.getElementById('authSubtitle').textContent = mode === 'register'
+      ? 'Create your student account to start practicing with Max.'
+      : 'Welcome back — log in to keep practicing with Max.';
+    document.getElementById('authAlt').innerHTML = mode === 'register'
+      ? 'Already a student? <a onclick="setAuthMode(\'login\')">Log in</a>'
+      : 'New here? <a onclick="setAuthMode(\'register\')">Register</a>';
+  };
+
   window.handleAuthSubmit = function(e){
     e.preventDefault();
     const name = document.getElementById('nameInput').value.trim();
-    const email = document.getElementById('emailInput').value.trim();
+    const email = document.getElementById('emailInput').value.trim().toLowerCase();
     const pass = document.getElementById('passInput').value;
     const errEl = document.getElementById('authError');
-
-    if(!name || !email || !pass){ errEl.textContent = 'Please fill in all three fields.'; return false; }
-    if(pass.length < 4){ errEl.textContent = 'Password should be at least 4 characters.'; return false; }
-
     errEl.textContent = '';
-    userName = name;
+
+    if(!email || !pass){ errEl.textContent = 'Please fill in email and password.'; return false; }
+
+    if(authMode === 'register'){
+      if(!name){ errEl.textContent = 'Please enter your name.'; return false; }
+      if(pass.length < 4){ errEl.textContent = 'Password should be at least 4 characters.'; return false; }
+      if(registeredStudents[email]){
+        errEl.textContent = 'That email is already registered — try logging in instead.';
+        return false;
+      }
+      registeredStudents[email] = {name, password: pass};
+      userName = name;
+    } else {
+      const record = registeredStudents[email];
+      if(!record){
+        errEl.textContent = 'No account found for that email yet — please register first.';
+        return false;
+      }
+      if(record.password !== pass){
+        errEl.textContent = 'Incorrect password. Please try again.';
+        return false;
+      }
+      userName = record.name;
+    }
+
     enterApp();
     return false;
   };
@@ -429,7 +476,7 @@
     document.getElementById('userInitial').textContent = (userName[0] || 'G').toUpperCase();
     showView('app');
     if(history.length === 0){
-      pushBotMessage((userName && userName!=='Guest' ? `Hi ${userName}! ` : 'Hi! ') + greetingFor(topic, level), null, true);
+      pushBotMessage((userName ? `Hi ${userName}! ` : 'Hi! ') + greetingFor(topic, level), null, true);
     }
   }
 
@@ -503,7 +550,7 @@
     if(correction && correction.original && correction.fixed){
       const c = document.createElement('div');
       c.className = 'correction-card';
-      c.innerHTML = '<div class="label">Small fix</div>' +
+      c.innerHTML = '<div class="label">✏️ Correct answer</div>' +
         '<div><span class="orig"></span> → <span class="fix"></span></div>' +
         '<div class="tip"></div>';
       c.querySelector('.orig').textContent = correction.original;
@@ -512,6 +559,13 @@
       chatLog.appendChild(c);
       correctionCount++;
       correctionCountEl.textContent = correctionCount;
+      if(appBot) appBot.setMood('correcting');
+    } else if(!skipToHistoryOnly){
+      const okTag = document.createElement('div');
+      okTag.className = 'correct-tag';
+      okTag.textContent = '✅ Correct English — nice!';
+      chatLog.appendChild(okTag);
+      if(appBot) appBot.setMood('happy');
     }
 
     chatLog.scrollTop = chatLog.scrollHeight;
@@ -583,6 +637,7 @@ or
     textInput.value = '';
     showTyping();
     setStatus('thinking');
+    if(appBot) appBot.setMood('thinking');
     try{
       const result = await askMax(text);
       hideTyping();
@@ -685,27 +740,68 @@ or
     head.scale.set(1, 0.92, 0.95);
     bot.add(head);
 
-    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.45,8), new THREE.MeshStandardMaterial({color:0xcfd2ea}));
-    stem.position.set(0, 1.15, 0);
-    bot.add(stem);
-    const tip = new THREE.Mesh(new THREE.SphereGeometry(0.09,16,16), new THREE.MeshStandardMaterial({color:0xffb84d, emissive:0xffb84d, emissiveIntensity:0.9}));
-    tip.position.set(0, 1.4, 0);
-    bot.add(tip);
+    // Ears — cat-like, Talking-Tom style
+    const earMat = new THREE.MeshStandardMaterial({color:0x3a4178, roughness:0.4});
+    const earGeo = new THREE.ConeGeometry(0.26, 0.42, 4);
+    const earL = new THREE.Mesh(earGeo, earMat);
+    earL.position.set(-0.62, 0.92, -0.05);
+    earL.rotation.z = 0.35;
+    earL.rotation.y = 0.4;
+    const earR = earL.clone();
+    earR.position.x = 0.62;
+    earR.rotation.z = -0.35;
+    earR.rotation.y = -0.4;
+    bot.add(earL, earR);
+    const earInnerMat = new THREE.MeshStandardMaterial({color:0xff8a80, emissive:0xff8a80, emissiveIntensity:0.25});
+    const earInnerGeo = new THREE.ConeGeometry(0.14, 0.24, 4);
+    const earInL = new THREE.Mesh(earInnerGeo, earInnerMat);
+    earInL.position.set(-0.6, 0.86, 0.14);
+    earInL.rotation.copy(earL.rotation);
+    const earInR = earInL.clone();
+    earInR.position.x = 0.6;
+    earInR.rotation.copy(earR.rotation);
+    bot.add(earInL, earInR);
 
+    // Eyebrows — expressive, tilt for mood
+    const browMat = new THREE.MeshStandardMaterial({color:0x161a35});
+    const browL = new THREE.Mesh(new THREE.BoxGeometry(0.22,0.045,0.05), browMat);
+    browL.position.set(-0.34, 0.33, 0.9);
+    const browR = browL.clone();
+    browR.position.x = 0.34;
+    bot.add(browL, browR);
+
+    // Eyes — big, expressive
     const eyeMat = new THREE.MeshStandardMaterial({color:0x161a35, roughness:0.2});
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.11,16,16), eyeMat);
+    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.13,16,16), eyeMat);
     eyeL.position.set(-0.34, 0.12, 0.86);
     const eyeR = eyeL.clone(); eyeR.position.x = 0.34;
     bot.add(eyeL, eyeR);
 
     const hlMat = new THREE.MeshBasicMaterial({color:0xffffff});
-    const hlL = new THREE.Mesh(new THREE.SphereGeometry(0.03,8,8), hlMat); hlL.position.set(-0.30,0.16,0.95);
-    const hlR = new THREE.Mesh(new THREE.SphereGeometry(0.03,8,8), hlMat); hlR.position.set(0.38,0.16,0.95);
+    const hlL = new THREE.Mesh(new THREE.SphereGeometry(0.035,8,8), hlMat); hlL.position.set(-0.30,0.16,0.97);
+    const hlR = new THREE.Mesh(new THREE.SphereGeometry(0.035,8,8), hlMat); hlR.position.set(0.38,0.16,0.97);
     bot.add(hlL, hlR);
 
+    // Blush cheeks — fade in when happy
+    const cheekMat = new THREE.MeshBasicMaterial({color:0xff8a80, transparent:true, opacity:0});
+    const cheekL = new THREE.Mesh(new THREE.SphereGeometry(0.11,12,12), cheekMat);
+    cheekL.scale.set(1,0.7,0.3);
+    cheekL.position.set(-0.55,-0.08,0.78);
+    const cheekR = cheekL.clone();
+    cheekR.material = cheekMat;
+    cheekR.position.x = 0.55;
+    bot.add(cheekL, cheekR);
+
+    // Mouth — smile curve (idle) + inner opening (talking)
+    const smileMat = new THREE.MeshStandardMaterial({color:0x161a35});
+    const smile = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.025, 8, 24, Math.PI), smileMat);
+    smile.position.set(0, -0.28, 0.9);
+    smile.rotation.z = Math.PI;
+    bot.add(smile);
     const mouthMat = new THREE.MeshStandardMaterial({color:0xff8a80, emissive:0xff8a80, emissiveIntensity:0.3});
-    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.32,0.08,0.05), mouthMat);
-    mouth.position.set(0, -0.32, 0.9);
+    const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.14,16,16), mouthMat);
+    mouth.position.set(0, -0.3, 0.88);
+    mouth.scale.set(1,0.01,0.6);
     bot.add(mouth);
 
     const body = new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.75,0.9,24), new THREE.MeshStandardMaterial({color:0x2a316b, roughness:0.5}));
@@ -732,6 +828,20 @@ or
       }
     }
 
+    // sparkle burst particles — triggered on correct answers
+    let sparkles = [];
+    function triggerSparkle(){
+      for(let i=0;i<8;i++){
+        const m = new THREE.Mesh(new THREE.SphereGeometry(0.045,8,8), new THREE.MeshBasicMaterial({color:0x7fd9a8}));
+        m.position.set(0, 0.4, 0.9);
+        const angle = Math.random()*Math.PI*2;
+        const speed = 0.5 + Math.random()*0.6;
+        scene.add(bot.children.length ? m : m); // ensure added
+        bot.add(m);
+        sparkles.push({mesh:m, vx:Math.cos(angle)*speed, vy:Math.sin(angle)*speed + 0.6, life:1.0});
+      }
+    }
+
     function resize(){
       const size = container.clientWidth;
       renderer.setSize(size, size);
@@ -742,24 +852,61 @@ or
     resize();
 
     let blinkTimer = 2 + Math.random()*2;
+    let mood = 'neutral'; // neutral | happy | correcting | thinking
+    let moodTimer = 0;
+
+    function setMood(m){
+      mood = m;
+      moodTimer = 1.8;
+      if(m === 'happy') triggerSparkle();
+    }
 
     function update(t, dt, state){
       bot.position.y = Math.sin(t*1.2)*0.06;
       bot.rotation.y = Math.sin(t*0.4)*0.18 + (opts.decorative ? t*0.06 : 0);
 
+      if(moodTimer > 0){
+        moodTimer -= dt;
+        if(moodTimer <= 0) mood = 'neutral';
+      }
+
+      // blink (slower/squintier while "thinking")
       blinkTimer -= dt;
       if(blinkTimer < 0.12 && blinkTimer > 0){
         eyeL.scale.y = eyeR.scale.y = 0.15;
       } else {
-        eyeL.scale.y = eyeR.scale.y = 1;
+        eyeL.scale.y = eyeR.scale.y = (mood === 'thinking') ? 0.55 : 1;
       }
-      if(blinkTimer <= 0) blinkTimer = 2.5 + Math.random()*2.5;
+      if(blinkTimer <= 0) blinkTimer = (mood === 'thinking' ? 1.2 : 2.5) + Math.random()*2.5;
 
+      // eyebrow / mood expression
+      const browTiltTarget = mood === 'correcting' ? 0.28 : mood === 'happy' ? -0.15 : 0;
+      browL.rotation.z += (browTiltTarget - browL.rotation.z) * 0.1;
+      browR.rotation.z += (-browTiltTarget - browR.rotation.z) * 0.1;
+      const browYTarget = mood === 'correcting' ? 0.36 : 0.33;
+      browL.position.y += (browYTarget - browL.position.y) * 0.1;
+      browR.position.y += (browYTarget - browR.position.y) * 0.1;
+
+      // cheeks (blush) fade with happy mood
+      const cheekTarget = mood === 'happy' ? 0.55 : 0;
+      cheekMat.opacity += (cheekTarget - cheekMat.opacity) * 0.08;
+
+      // smile widens when happy, softens when correcting
+      const smileScaleTarget = mood === 'happy' ? 1.15 : mood === 'correcting' ? 0.85 : 1;
+      smile.scale.x += (smileScaleTarget - smile.scale.x) * 0.1;
+      smile.scale.y += (smileScaleTarget - smile.scale.y) * 0.1;
+
+      // mouth talk animation
       const tl = state ? state.talkLevel : 0;
-      const targetScaleY = 1 + tl*3.2;
+      const targetScaleY = Math.max(0.01, tl*3.4);
       mouth.scale.y += (targetScaleY - mouth.scale.y) * 0.35;
       const speaking = state ? state.isSpeaking : false;
-      headMat.emissiveIntensity += ((speaking ? 0.75 : 0.4) - headMat.emissiveIntensity) * 0.08;
+
+      // head glow color shifts with mood
+      const glowTarget = mood === 'happy' ? 0.8 : mood === 'correcting' ? 0.65 : (speaking ? 0.75 : 0.4);
+      headMat.emissiveIntensity += (glowTarget - headMat.emissiveIntensity) * 0.08;
+      const targetHeadColor = mood === 'happy' ? 0x2f6b52 : mood === 'correcting' ? 0x5a4326 : 0x1a1f3e;
+      headMat.emissive.lerp(new THREE.Color(targetHeadColor), 0.06);
 
       const listening = state ? state.isListening : false;
       if(listening){
@@ -776,15 +923,30 @@ or
         p.mesh.position.set(Math.cos(a)*p.radius, p.yOff + Math.sin(t*0.6+p.angleOff)*0.2, Math.sin(a)*p.radius*0.6);
       });
 
+      sparkles.forEach(s=>{
+        s.mesh.position.x += s.vx*dt;
+        s.mesh.position.y += s.vy*dt;
+        s.vy -= dt*1.2;
+        s.life -= dt*1.1;
+        s.mesh.material.opacity = Math.max(0, s.life);
+        s.mesh.material.transparent = true;
+        s.mesh.scale.setScalar(Math.max(0.01, s.life));
+      });
+      sparkles = sparkles.filter(s=>{
+        if(s.life <= 0){ bot.remove(s.mesh); return false; }
+        return true;
+      });
+
       renderer.render(scene, camera);
     }
 
-    return {update, resize};
+    return {update, resize, setMood};
   }
 
   // Landing bot: created immediately, decorative, idle-only state
   const landingBotState = {talkLevel:0, isSpeaking:false, isListening:false};
   const landingBot = createBotScene(document.getElementById('landingStage'), {decorative:true});
+
 
   // App bot: created lazily on first entry, driven by real chat state
   let appBot = null;
