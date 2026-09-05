@@ -741,17 +741,40 @@ or
     window.speechSynthesis.onvoiceschanged = loadVoices;
   }
 
+  const FEMALE_VOICE_PATTERN = /female|woman|samantha|victoria|karen|susan|zira|tessa|moira|fiona|amelie|kate|serena|allison|ava|salli|joanna|kimberly|ivy|nicole|zoe|aria|jenny|natasha|libby|olivia|emma|sonia|hazel/i;
+
+  function pickFemaleVoice(){
+    const enVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
+    return enVoices.find(v => FEMALE_VOICE_PATTERN.test(v.name)) ||
+           enVoices.find(v => /google/i.test(v.name)) ||
+           enVoices[0] ||
+           voices[0];
+  }
+
   function speak(text){
     if(!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
-    const enVoice = voices.find(v => v.lang && v.lang.startsWith('en') && /female|Samantha|Google US English/i.test(v.name)) ||
-                     voices.find(v => v.lang && v.lang.startsWith('en'));
-    if(enVoice) utter.voice = enVoice;
+    const chosenVoice = pickFemaleVoice();
+    if(chosenVoice) utter.voice = chosenVoice;
+    utter.pitch = 1.05;
     utter.rate = level === 'Beginner' ? 0.9 : 1.0;
     utter.onstart = ()=>{ isSpeaking = true; setStatus('speaking'); };
     utter.onend = ()=>{ isSpeaking = false; talkLevel = 0; setStatus(isListening?'listening':'idle'); };
     utter.onboundary = ()=>{ talkLevel = 1; setTimeout(()=>{ talkLevel = 0.15; }, 90); };
+    window.speechSynthesis.speak(utter);
+  }
+
+  function speakOnBot(text, stateObj){
+    if(!window.speechSynthesis) return;
+    const utter = new SpeechSynthesisUtterance(text);
+    const chosenVoice = pickFemaleVoice();
+    if(chosenVoice) utter.voice = chosenVoice;
+    utter.pitch = 1.05;
+    utter.rate = 1.0;
+    utter.onstart = ()=>{ stateObj.isSpeaking = true; };
+    utter.onend = ()=>{ stateObj.isSpeaking = false; stateObj.talkLevel = 0; };
+    utter.onboundary = ()=>{ stateObj.talkLevel = 1; setTimeout(()=>{ stateObj.talkLevel = 0.15; }, 90); };
     window.speechSynthesis.speak(utter);
   }
 
@@ -857,6 +880,33 @@ or
     body.position.set(0, -1.35, 0);
     bot.add(body);
 
+    // Arms — pivoted at the shoulder so they can swing/wave
+    const armMat = new THREE.MeshStandardMaterial({color:0x2a316b, roughness:0.5});
+    const armPivotL = new THREE.Group();
+    armPivotL.position.set(-0.62, -0.95, 0);
+    const armL = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.065,0.55,10), armMat);
+    armL.position.set(0, -0.28, 0);
+    armPivotL.add(armL);
+    armPivotL.rotation.z = 0.2;
+    bot.add(armPivotL);
+
+    const armPivotR = new THREE.Group();
+    armPivotR.position.set(0.62, -0.95, 0);
+    const armR = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.065,0.55,10), armMat.clone());
+    armR.position.set(0, -0.28, 0);
+    armPivotR.add(armR);
+    armPivotR.rotation.z = -0.2;
+    bot.add(armPivotR);
+
+    // Grounded shadow — gives the floating character real depth
+    const shadow = new THREE.Mesh(
+      new THREE.CircleGeometry(1.15, 32),
+      new THREE.MeshBasicMaterial({color:0x000000, transparent:true, opacity:0.28})
+    );
+    shadow.rotation.x = -Math.PI/2;
+    shadow.position.set(0, -2.05, 0);
+    scene.add(shadow);
+
     const ringMat = new THREE.MeshBasicMaterial({color:0xff8a80, transparent:true, opacity:0});
     const ring = new THREE.Mesh(new THREE.TorusGeometry(1.5,0.02,8,64), ringMat);
     ring.rotation.x = Math.PI/2.4;
@@ -903,6 +953,7 @@ or
     let blinkTimer = 2 + Math.random()*2;
     let mood = 'neutral'; // neutral | happy | correcting | thinking
     let moodTimer = 0;
+    let waveTimer = 0;
 
     function setMood(m){
       mood = m;
@@ -910,9 +961,34 @@ or
       if(m === 'happy') triggerSparkle();
     }
 
+    function triggerWave(){
+      waveTimer = 1.3;
+    }
+
+    // Click Max to say hi — a fun, discoverable bit of interactivity
+    renderer.domElement.style.cursor = 'pointer';
+    renderer.domElement.addEventListener('click', ()=>{
+      triggerWave();
+      if(opts.onGreetClick) opts.onGreetClick();
+    });
+
     function update(t, dt, state){
       bot.position.y = Math.sin(t*1.2)*0.06;
       bot.rotation.y = Math.sin(t*0.4)*0.18 + (opts.decorative ? t*0.06 : 0);
+
+      // grounded shadow reacts inversely to the bob for a floating-with-weight feel
+      const bob = bot.position.y;
+      shadow.scale.setScalar(1 - bob*1.4);
+      shadow.material.opacity = 0.28 - Math.abs(bob)*0.6;
+
+      // idle arm sway, overridden by a wave animation on the right arm when triggered
+      armPivotL.rotation.z = 0.2 + Math.sin(t*1.2)*0.05;
+      if(waveTimer > 0){
+        waveTimer -= dt;
+        armPivotR.rotation.z = -1.3 + Math.sin(waveTimer*14)*0.5;
+      } else {
+        armPivotR.rotation.z += (-0.2 - Math.sin(t*1.2)*0.05 - armPivotR.rotation.z) * 0.15;
+      }
 
       if(opts.parallax){
         camera.position.x += (mouseNX*0.9 - camera.position.x) * 0.04;
@@ -995,12 +1071,21 @@ or
       renderer.render(scene, camera);
     }
 
-    return {update, resize, setMood};
+    return {update, resize, setMood, triggerWave};
   }
 
   // Landing bot: created immediately, decorative, idle-only state
   const landingBotState = {talkLevel:0, isSpeaking:false, isListening:false};
-  const landingBot = createBotScene(document.getElementById('landingStage'), {decorative:true, parallax:true});
+  const landingGreetings = [
+    "Hi! Ready to practice English?",
+    "Hello there! Let's get you speaking fluently.",
+    "Hey! Click Get started whenever you're ready."
+  ];
+  const landingBot = createBotScene(document.getElementById('landingStage'), {
+    decorative:true,
+    parallax:true,
+    onGreetClick: ()=> speakOnBot(landingGreetings[Math.floor(Math.random()*landingGreetings.length)], landingBotState)
+  });
 
   // ================= Ambient full-page 3D background (landing only) =================
   function createLandingBg(container){
