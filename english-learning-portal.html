@@ -598,16 +598,16 @@
 
   async function askMax(userText){
     const systemPrompt =
-`You are Max, a warm, encouraging English conversation tutor. The learner's level is ${level} and the current topic/scenario is "${topic}".
+`You are Max, a warm, encouraging English conversation tutor helping a total beginner build fluent English communication. The learner's level is ${level} and the current topic/scenario is "${topic}".
 Rules:
+- Act like a patient teacher running a spoken practice session: ask exactly ONE question at a time, then wait for the learner's answer before asking anything else. Never ask two questions in the same reply.
 - Reply naturally and conversationally, 1-3 sentences, in character for the scenario.
 - Match the ${level} level: Beginner = very simple vocabulary, short sentences, lots of encouragement. Intermediate = natural everyday pace and vocabulary. Advanced = idiomatic, nuanced, can challenge the learner.
-- If the learner's last message contains a grammar, word choice, or phrasing mistake, set "correction" with the exact mistaken phrase, the fixed phrase, and a short friendly tip explaining why. If there is no mistake worth mentioning, set "correction" to null.
-- Keep the conversation going with a natural follow-up question when it fits the scenario.
+- Always evaluate the learner's last message. If it contains a grammar, word choice, or phrasing mistake, set "correction" with the exact mistaken phrase, the fixed phrase, and a short friendly tip explaining why. If it's already correct English, set "correction" to null and briefly praise them before your next question.
 - Respond with ONLY valid JSON and nothing else — no markdown fences, no preamble. Exactly this shape:
-{"reply": "your spoken-aloud reply as Max", "correction": null}
+{"reply": "your spoken-aloud reply as Max, ending in exactly one question", "correction": null}
 or
-{"reply": "your spoken-aloud reply as Max", "correction": {"original": "exact mistaken phrase", "fixed": "corrected phrase", "tip": "one short friendly sentence"}}`;
+{"reply": "your spoken-aloud reply as Max, ending in exactly one question", "correction": {"original": "exact mistaken phrase", "fixed": "corrected phrase", "tip": "one short friendly sentence"}}`;
 
     const chatMessages = [{role:"system", content: systemPrompt}];
     history.forEach(h => {
@@ -628,12 +628,22 @@ or
       })
     });
     const data = await response.json();
+
+    if(data.error){
+      console.error('Groq API error:', data.error);
+      throw new Error(data.error.message || 'Groq API returned an error.');
+    }
+
     const raw = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
+    if(!raw){
+      console.error('Unexpected Groq response shape:', data);
+      throw new Error('Empty response from Groq.');
+    }
     const cleaned = raw.replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim();
     try{
       return JSON.parse(cleaned);
     }catch(e){
-      return {reply: raw || "Sorry, I lost my train of thought — could you say that again?", correction:null};
+      return {reply: raw, correction:null};
     }
   }
 
@@ -652,7 +662,7 @@ or
       pushBotMessage(result.reply, result.correction);
     }catch(err){
       hideTyping();
-      addSystemNote("Max is having trouble connecting right now. Please try again.");
+      addSystemNote("Max is having trouble connecting: " + (err.message || "unknown error") + ". Please try again.");
     }
     setStatus('idle');
   }
